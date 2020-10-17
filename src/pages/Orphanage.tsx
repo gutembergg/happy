@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaWhatsapp } from 'react-icons/fa'
-import { FiClock, FiInfo, FiArrowLeft } from 'react-icons/fi'
+import { FiClock, FiInfo } from 'react-icons/fi'
 import { Map, Marker, TileLayer } from 'react-leaflet'
-import { useHistory } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import L from 'leaflet'
 
 import mapMarkerImg from '../images/map-marker.svg'
+import api from '../services/api'
 
 import '../styles/orphanage.css'
+import Sidebar from '../components/SideBar/SideBar'
 
 const happyMapIcon = L.icon({
   iconUrl: mapMarkerImg,
@@ -17,69 +19,66 @@ const happyMapIcon = L.icon({
   popupAnchor: [0, -60]
 })
 
+interface Orphanage {
+  name: string
+  latitude: number
+  longitude: number
+  about: string
+  intructions: string
+  opeing_houes: string
+  open_on_weekend: boolean
+  images: Array<{
+    id: number
+    url: string
+  }>
+}
+
+interface OrphanageParams {
+  id: string
+}
+
 export default function Orphanage() {
-  const { goBack } = useHistory()
+  const [orphanage, setOrphanage] = useState<Orphanage>()
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+
+  const params = useParams<OrphanageParams>()
+
+  useEffect(() => {
+    api.get(`/user/${params.id}`).then(res => {
+      setOrphanage(res.data)
+      console.log(res.data)
+    })
+  }, [params.id])
+
+  if (!orphanage) {
+    return <p>Loading...</p>
+  }
 
   return (
     <div id="page-orphanage">
-      <aside>
-        <img src={mapMarkerImg} alt="Happy" />
-
-        <footer>
-          <button type="button" onClick={goBack}>
-            <FiArrowLeft size={24} color="#FFF" />
-          </button>
-        </footer>
-      </aside>
+      <Sidebar />
 
       <main>
         <div className="orphanage-details">
-          <img
-            src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-            alt="Lar das meninas"
-          />
+          <img src={orphanage.images[activeImageIndex].url} alt="Lar das meninas" />
 
           <div className="images">
-            <button className="active" type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
-            <button type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
-            <button type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
-            <button type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
-            <button type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
-            <button type="button">
-              <img
-                src="https://www.gcd.com.br/wp-content/uploads/2020/08/safe_image.jpg"
-                alt="Lar das meninas"
-              />
-            </button>
+            {orphanage.images.map((image, index) => {
+              return (
+                <button
+                  key={image.id}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={activeImageIndex === index ? 'active' : ''}
+                  type="button"
+                >
+                  <img src={image.url} alt="Lar das meninas" />
+                </button>
+              )
+            })}
           </div>
 
           <div className="orphanage-details-content">
-            <h1>Lar das meninas</h1>
+            <h1>{orphanage.name}</h1>
             <p>
               Presta assistência a crianças de 06 a 15 anos que se encontre em situação de risco
               e/ou vulnerabilidade social.
@@ -87,7 +86,7 @@ export default function Orphanage() {
 
             <div className="map-container">
               <Map
-                center={[-27.2092052, -49.6401092]}
+                center={[orphanage.latitude, orphanage.longitude]}
                 zoom={16}
                 style={{ width: '100%', height: 280 }}
                 dragging={false}
@@ -102,12 +101,18 @@ export default function Orphanage() {
                 <Marker
                   interactive={false}
                   icon={happyMapIcon}
-                  position={[-27.2092052, -49.6401092]}
+                  position={[orphanage.latitude, orphanage.longitude]}
                 />
               </Map>
 
               <footer>
-                <a href="">Ver rotas no Google Maps</a>
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${orphanage.latitude},${orphanage.longitude}`}
+                >
+                  Ver rotas no Google Maps
+                </a>
               </footer>
             </div>
 
